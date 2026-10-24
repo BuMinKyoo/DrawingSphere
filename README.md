@@ -1,6 +1,6 @@
 # DrawingSphere
 
-화면의 픽셀마다 광선을 만들고, 구와 만나는 위치를 계산해 구 하나를 그리는 작은 C# 공부용 프로젝트입니다. 시작점과 방향으로 광선을 표현하고, 구와의 교차 결과를 픽셀의 색으로 바꾸는 과정을 이해하는 것이 목적입니다.
+화면의 픽셀마다 광선을 만들고, 구와 만나는 위치를 계산해 구 하나를 그리는 작은 C# 공부용 프로젝트입니다. 시작점과 방향으로 광선을 표현하고, 구와의 교차 결과를 픽셀의 색으로 바꾸는 과정을 이해하는 것이 목적입니다. Step5의 Phong 조명을 추가해 빛의 위치와 표면의 법선에 따라 명암과 반짝임이 달라집니다.
 
 ## 실행과 조작
 
@@ -13,8 +13,10 @@ dotnet run --project SimpleDrawingSphere.csproj -c Release
 프로젝트 파일은 `SimpleDrawingSphere.csproj`입니다. 솔루션 파일(`.sln`)이나 별도 외부 패키지는 필요하지 않습니다.
 
 - 중심 X·Y·Z와 반지름은 슬라이더로 조절합니다.
-- 각 슬라이더의 현재 값은 소수점 두 자리로 표시됩니다.
-- 색상 버튼으로 구의 색을 선택합니다.
+- 광원 X·Y·Z, 반짝임 지수 `Alpha`, 반짝임 세기 `Ks`도 슬라이더로 조절합니다.
+- 각 슬라이더의 현재 값은 소수점 두 자리로 표시됩니다. 아래쪽 항목은 오른쪽 패널을 세로로 스크롤하면 보입니다.
+- `확산색 (Diffuse)` 버튼으로 빛을 받아 드러나는 구의 기본색을 선택합니다.
+- `Ambient`와 `Specular` 색은 `Raytracer.cs`의 초기값을 수정해서 바꿀 수 있습니다.
 
 ## 처음 설정된 광선과 구
 
@@ -27,14 +29,23 @@ dotnet run --project SimpleDrawingSphere.csproj -c Release
 | 광선 방향 `Ray.Direction` | `(0, 0, 1)` — 길이가 1인 +Z 방향 |
 | 구의 중심 `Sphere.Center` | `(0, 0, 0.5)` |
 | 구의 반지름 `Sphere.Radius` | `0.4` |
-| 구의 기본색 `Sphere.Color` | `(1, 1, 1)` — RGB 각 성분이 0~1인 흰색 |
+| 구의 확산색 `Sphere.Color` | `(0, 0, 1)` — 파란색, 강의의 `diff`에 해당 |
+| 주변광 성분 `Sphere.Ambient` | `(0, 0, 0)` |
+| 반사광 색 `Sphere.Specular` | `(1, 1, 1)` — 흰색 |
+| 반짝임 지수 `Sphere.Alpha` | `9` |
+| 반짝임 세기 `Sphere.Ks` | `0.8` |
+| 광원 위치 `Light.Position` | `(0, 0, -1)` |
 
 구의 초기 설정은 다음과 같습니다.
 
 ```csharp
 public Vector3 Center = new Vector3(0, 0, 0.5f);
 public float Radius = 0.4f;
-public Vector3 Color = Vector3.One;
+public Vector3 Color = new Vector3(0, 0, 1);
+public Vector3 Ambient = Vector3.Zero;
+public Vector3 Specular = Vector3.One;
+public float Alpha = 9.0f;
+public float Ks = 0.8f;
 ```
 
 여기서 `(0, 0, 0.5)`는 **구의 중심**입니다. 월드 좌표계의 원점 `(0, 0, 0)`이 바뀌는 것은 아닙니다. 구를 구성하는 점을 배열에 미리 채우는 대신, 중심과 반지름으로 구 표면의 조건을 정의합니다.
@@ -137,19 +148,74 @@ z=0 ---------- z=0.1 --------- z=0.5 --------- z=0.9
 
 현재 구현은 강의 예제처럼 두 근의 최솟값을 선택한 뒤, 선택한 거리가 음수이면 배경색을 반환합니다. 시작점이 구 내부에 있을 때 양수인 출구를 다시 선택하는 처리는 포함하지 않습니다. 따라서 슬라이더로 구가 시작점을 감싸게 만들면 해당 픽셀이 검게 표시될 수 있습니다.
 
-## 충돌 거리로 입체감을 표현하기
+## Step4: 충돌 거리로 밝기 표현하기
 
-구와 만난 픽셀의 색은 다음 한 줄로 정합니다.
+Phong 조명을 추가하기 전에는 다음 한 줄로 색을 정했습니다.
 
 ```csharp
 return Sphere.Color * hit.Distance;
 ```
 
-기본색이 흰색 `(1, 1, 1)`이고 거리가 `0.1`이면, 색은 `(0.1, 0.1, 0.1)`이 됩니다. 마지막에 RGB 성분을 `0~1`로 제한해서 이미지에 넣습니다. 구를 만나지 않은 픽셀은 검은색입니다.
+당시 기본색이 흰색 `(1, 1, 1)`이고 거리가 `0.1`이면, 색은 `(0.1, 0.1, 0.1)`이 됩니다. 이 식은 거리가 클수록 밝아지는 깊이 확인용 표현입니다. 광원 위치나 표면 방향은 색 계산에 사용하지 않았습니다.
 
-표면까지의 거리가 픽셀마다 달라지므로 밝기에도 차이가 생깁니다. **현재 식에서는 거리가 클수록 밝아집니다.** 기본 장면에서는 구 중앙이 가장자리보다 어둡게 보일 수 있습니다.
+## Step5: Phong 조명으로 명암과 반짝임 표현하기
 
-이것은 깊이 차이를 밝기로 확인하는 학습용 표현입니다. 빛의 위치나 그림자를 계산하는 조명 모델은 아닙니다. 교차점의 법선 `Hit.Normal`도 계산하지만, 현재 색 계산에서는 사용하지 않습니다.
+현재 `TraceRay`에서는 교차점의 거리 대신 다음 세 성분을 더해 색을 정합니다.
+
+```text
+색 = Ambient + Diffuse 색 × diffuse + Specular 색 × specular × Ks
+```
+
+교차 거리는 여전히 교차점 `Hit.Point`를 구하는 데 사용합니다. 그 교차점에서 광원까지의 방향과 구 표면의 법선 `Hit.Normal`을 이용해 밝기를 계산합니다.
+
+### 1. Ambient: 기본으로 더하는 색
+
+주변에서 들어오는 빛을 간단한 상수 색으로 표현합니다. 실제 주변 물체의 빛을 추적하는 계산은 아닙니다. 초기값은 검은색이므로 이 성분은 결과에 아무것도 더하지 않습니다.
+
+### 2. Diffuse: 표면이 빛을 향하는 정도
+
+`N`은 교차점에서 바깥쪽으로 향하는 단위 법선이고, `L`은 교차점에서 광원으로 향하는 단위 벡터입니다.
+
+```text
+N = hit.Normal
+L = normalize(Light.Position - hit.Point)
+diffuse = max(dot(N, L), 0)
+```
+
+법선과 광원 방향이 같으면 내적이 1이어서 밝고, 서로 수직이면 0이어서 어둡습니다. 음수는 0으로 제한합니다. 이 값을 구의 확산색 `Sphere.Color`에 곱합니다.
+
+### 3. Specular: 반사 방향에 생기는 반짝임
+
+`R`은 입사한 빛이 표면에서 반사되어 나가는 방향이고, `V`는 교차점에서 관찰자 쪽을 향하는 방향입니다. 현재 광선 방향의 반대쪽인 `-ray.Direction`을 사용합니다.
+
+```text
+R = 2 × dot(N, L) × N - L
+V = -ray.Direction
+specular = pow(max(dot(V, R), 0), Alpha)
+```
+
+반사 방향과 관찰 방향이 일치할수록 밝은 반짝임이 생깁니다. `Alpha`가 커질수록 반짝이는 영역이 좁아지고, `Ks`가 커질수록 반짝임이 강해집니다. 슬라이더 범위는 `Alpha = 1~100`, `Ks = 0~1`입니다. `Ks = 0`이면 이 성분은 사라집니다.
+
+### 4. 세 성분을 더해 픽셀 색으로 만들기
+
+```csharp
+Vector3 ambientColor = Sphere.Ambient;
+Vector3 diffuseColor = Sphere.Color * diffuse;
+Vector3 specularColor = Sphere.Specular * specular * Sphere.Ks;
+
+return ambientColor + diffuseColor + specularColor;
+```
+
+위의 정확한 중앙 광선 예에서는 교차점이 `(0, 0, 0.1)`이고, 법선과 광원 방향, 관찰 방향, 반사 방향이 모두 `(0, 0, -1)`입니다. 따라서 `diffuse = 1`, `specular = 1`이고 초기 색은 다음과 같습니다.
+
+```text
+(0, 0, 0) + (0, 0, 1) × 1 + (1, 1, 1) × 1 × 0.8
+= (0.8, 0.8, 1.8)
+```
+
+마지막에 RGB를 각각 `0~1`로 제한하므로 `(0.8, 0.8, 1)`이 됩니다. 구를 만나지 않은 픽셀은 검은색입니다.
+
+강의와 같은 기본 Phong 계산이며, 광원까지의 거리에 따른 빛의 감쇠나 다른 물체에 가려 생기는 그림자는 계산하지 않습니다. 구의 중심과 반지름, 좌표 변환, 교차점 계산은 기존 Step4 형태를 유지합니다.
 
 ## 구 하나만 그릴 수 있는데 왜 Ray를 사용할까?
 
@@ -175,11 +241,12 @@ frontZ = Cz - sqrt(k)    (k >= 0인 경우)
 ## 코드 읽는 순서
 
 1. `Program.cs`: 프로그램 시작과 창 실행
-2. `Raytracer.cs`: `Ray`, `Hit`, `Sphere`, `Raytracer`의 교차 계산과 픽셀 생성
-3. `SphereWindow.cs`: 위치·반지름 슬라이더, 색상 입력과 화면 표시
+2. `Raytracer.cs`: `Ray`, `Hit`, `Light`, `Sphere`, `Raytracer`의 교차 계산, Phong 색 계산과 픽셀 생성
+3. `SphereWindow.cs`: 구·광원·반짝임 슬라이더, 확산색 입력과 화면 표시
 
 구 그리기 강의의 학습 주제를 바탕으로 Codex의 도움을 받아 작성했습니다.
 
 ## 참고 자료
 
 - [Line–sphere intersection — Wikipedia](https://en.wikipedia.org/wiki/Line-sphere_intersection): 직선과 구의 교차 방정식 참고
+- [Phong Illumination Model — Scratchapixel](https://www.scratchapixel.com/lessons/3d-basic-rendering/phong-shader-BRDF/phong-illumination-models-brdf.html): Diffuse와 Specular 계산 참고

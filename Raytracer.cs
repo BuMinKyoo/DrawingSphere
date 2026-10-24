@@ -18,11 +18,21 @@ struct Hit
     public Vector3 Normal;
 }
 
+class Light
+{
+    public Vector3 Position = new Vector3(0, 0, -1);
+}
+
 class Sphere
 {
     public Vector3 Center = new Vector3(0, 0, 0.5f);
     public float Radius = 0.4f;
-    public Vector3 Color = Vector3.One;
+    // Color는 Step5의 Diffuse(확산색)에 해당합니다.
+    public Vector3 Color = new Vector3(0, 0, 1);
+    public Vector3 Ambient = Vector3.Zero;
+    public Vector3 Specular = Vector3.One;
+    public float Alpha = 9.0f;
+    public float Ks = 0.8f;
 
     public Hit IntersectRayCollision(Ray ray)
     {
@@ -50,6 +60,7 @@ class Sphere
 class Raytracer
 {
     public Sphere Sphere = new Sphere();
+    public Light Light = new Light();
 
     public Vector3 TransformScreenToWorld(int x, int y, int width, int height)
     {
@@ -75,8 +86,29 @@ class Raytracer
         if (hit.Distance < 0)
             return Vector3.Zero;
 
-        // 원본과 같은 학습용 표현: 충돌 거리를 색에 곱합니다.
-        return Sphere.Color * hit.Distance;
+        // 1. 교차점에서 광원으로 향하는 단위 벡터
+        Vector3 toLight = Light.Position - hit.Point;
+        if (toLight.LengthSquared() == 0.0f)
+            return Sphere.Ambient;
+        Vector3 dirToLight = Vector3.Normalize(toLight);
+
+        // 2. Diffuse: 표면이 빛을 향하는 정도
+        float normalDotLight = Vector3.Dot(hit.Normal, dirToLight);
+        float diffuse = MathF.Max(normalDotLight, 0.0f);
+
+        // 3. Specular: 반사 방향과 관찰 방향이 일치하는 정도
+        Vector3 reflectDir = 2.0f * normalDotLight * hit.Normal - dirToLight;
+        Vector3 viewDir = -ray.Direction;
+        float viewDotReflect = Vector3.Dot(viewDir, reflectDir);
+        float specularBase = MathF.Max(viewDotReflect, 0.0f);
+        float specular = MathF.Pow(specularBase, Sphere.Alpha);
+
+        // 4. Ambient + Diffuse + Specular
+        Vector3 ambientColor = Sphere.Ambient;
+        Vector3 diffuseColor = Sphere.Color * diffuse;
+        Vector3 specularColor = Sphere.Specular * specular * Sphere.Ks;
+
+        return ambientColor + diffuseColor + specularColor;
     }
 
     public Bitmap Render(int width, int height)

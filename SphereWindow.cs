@@ -22,10 +22,11 @@ class SphereWindow : Form
         canvas.BackColor = System.Drawing.Color.Black;
         canvas.SizeMode = PictureBoxSizeMode.Zoom;
         panel.Dock = DockStyle.Right;
-        panel.Width = 210;
+        panel.Width = 230;
         panel.Padding = new Padding(12);
         panel.FlowDirection = FlowDirection.TopDown;
         panel.WrapContents = false;
+        panel.AutoScroll = true;
         Controls.Add(canvas);
         Controls.Add(panel);
 
@@ -34,7 +35,7 @@ class SphereWindow : Form
         AddSlider("중심 Z", 0.5f, -1, 1, v => raytracer.Sphere.Center.Z = v);
         AddSlider("반지름", 0.4f, 0.01f, 1, v => raytracer.Sphere.Radius = v);
 
-        Button colorButton = new Button { Text = "색 바꾸기", Width = 170, Height = 32 };
+        Button colorButton = new Button { Text = "확산색 (Diffuse)", Width = 170, Height = 32 };
         colorButton.Click += (_, _) =>
         {
             Vector3 rgb = raytracer.Sphere.Color;
@@ -51,9 +52,22 @@ class SphereWindow : Form
             }
         };
         panel.Controls.Add(colorButton);
+
         panel.Controls.Add(new Label
         {
-            Text = "화면 좌표 → 광선 생성\n→ 구와 교차 계산 → 색 표시",
+            Text = "Phong 조명",
+            AutoSize = true,
+            Margin = new Padding(3, 16, 3, 3)
+        });
+        AddSlider("광원 X", 0, -2, 2, v => raytracer.Light.Position.X = v);
+        AddSlider("광원 Y", 0, -2, 2, v => raytracer.Light.Position.Y = v);
+        AddSlider("광원 Z", -1, -2, 2, v => raytracer.Light.Position.Z = v);
+        AddSlider("반짝임 지수 Alpha", 9, 1, 100, v => raytracer.Sphere.Alpha = v);
+        AddSlider("반짝임 세기 Ks", 0.8f, 0, 1, v => raytracer.Sphere.Ks = v);
+
+        panel.Controls.Add(new Label
+        {
+            Text = "화면 좌표 → 광선 생성\n→ 구와 교차 계산 → Phong 색 계산",
             AutoSize = true,
             Margin = new Padding(3, 16, 3, 3)
         });
