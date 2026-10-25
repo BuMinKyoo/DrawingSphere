@@ -1,6 +1,6 @@
 # DrawingSphere
 
-광선과 구의 교차 계산부터 Phong 조명, 원근투영, 삼각형 교차까지 순서대로 공부하는 작은 C# Windows Forms 솔루션입니다. 각 단계는 독립된 프로젝트이며, 같은 창과 픽셀 그리기 구조를 사용합니다.
+광선과 구의 교차 계산부터 Phong 조명, 원근투영, 삼각형 교차와 그림자까지 순서대로 공부하는 작은 C# Windows Forms 솔루션입니다. 각 단계는 독립된 프로젝트이며, 같은 창과 픽셀 그리기 구조를 사용합니다.
 
 | 프로젝트 | 학습 내용 | 기준 |
 | --- | --- | --- |
@@ -8,6 +8,7 @@
 | [Step2_PhongShading](Step2_PhongShading/) | 정투영에 Ambient·Diffuse·Specular 조명 추가 | `eb51113`의 소스 |
 | [Step3_PerspectiveView](Step3_PerspectiveView/) | 구 세 개의 최근접 충돌과 정투영·원근투영 비교 | 강의 Step6의 계산을 2단계 코드에 추가 |
 | [Step4_Triangle](Step4_Triangle/) | 광선·평면 교점과 삼각형 내부 판정, 구와의 최근접 충돌 | 강의 Step7의 IntersectRayTriangle 흐름 |
+| [Step5_Shadow](Step5_Shadow/) | 표면에서 그림자 광선을 만들고 가려진 곳에 Ambient만 적용 | 강의 Step8의 요청된 traceRay 식 |
 
 ## 실행
 
@@ -19,7 +20,7 @@ Visual Studio에서는 .NET 10을 지원하는 버전과 **.NET 데스크톱 개
 2. 솔루션 탐색기에서 실행할 프로젝트를 마우스 오른쪽 버튼으로 클릭합니다.
 3. **시작 프로젝트로 설정**을 선택하고 `F5` 또는 `Ctrl+F5`로 실행합니다.
 
-`run.cmd`를 더블 클릭해 1·2·3·4 중 실행할 단계를 선택할 수도 있습니다. 터미널에서는 다음 명령을 사용합니다.
+`run.cmd`를 더블 클릭해 1·2·3·4·5 중 실행할 단계를 선택할 수도 있습니다. 터미널에서는 다음 명령을 사용합니다.
 
 ```powershell
 dotnet build DrawingSphere.sln -c Release
@@ -27,6 +28,7 @@ dotnet run --project Step1_DrawingSphere/Step1_DrawingSphere.csproj -c Release
 dotnet run --project Step2_PhongShading/Step2_PhongShading.csproj -c Release
 dotnet run --project Step3_PerspectiveView/Step3_PerspectiveView.csproj -c Release
 dotnet run --project Step4_Triangle/Step4_Triangle.csproj -c Release
+dotnet run --project Step5_Shadow/Step5_Shadow.csproj -c Release
 ```
 
 ## 단계별 조작
@@ -35,9 +37,10 @@ dotnet run --project Step4_Triangle/Step4_Triangle.csproj -c Release
 - **2단계:** 기존 구 조절에 광원 X·Y·Z, 반짝임 지수 `Alpha`, 반짝임 세기 `Ks`를 더합니다. `확산색 (Diffuse)` 버튼으로 기본색을 바꿉니다.
 - **3단계:** `원근 투영` 체크를 켜고 끄며 같은 장면을 비교합니다. 빨강·초록·파랑 구의 Z좌표와 광원 X·Y·Z를 조절합니다. 구의 반지름은 모두 `0.4`로 고정합니다.
 - **4단계:** 빨간 구와 회색 삼각형을 함께 그립니다. 각각의 Z좌표, 광원 X·Y·Z를 조절하고 정투영·원근투영을 비교합니다. `삼각형 뒷면 제외`는 처음에는 꺼져 있습니다.
+- **5단계:** 구 X·Y·Z와 광원 X·Y·Z를 조절합니다. `그림자` 체크를 켜고 끄며 바닥의 색을 비교합니다. 바닥은 삼각형 두 개로 만들고 위치를 고정합니다.
 - 슬라이더의 값은 소수점 두 자리로 표시됩니다. 아래쪽 항목은 오른쪽 패널을 세로로 스크롤하면 보입니다.
 
-1·2·3단계는 `Program.cs`, `Raytracer.cs`, `SphereWindow.cs` 세 소스 파일을 갖습니다. 4단계는 창 파일이 `TriangleWindow.cs`이고, 삼각형 계산을 `Triangle.cs`에서 읽을 수 있습니다. 공용 프로젝트나 프로젝트 간 참조는 없습니다.
+1·2·3단계는 `Program.cs`, `Raytracer.cs`, `SphereWindow.cs` 세 소스 파일을 갖습니다. 4·5단계의 창 파일은 각각 `TriangleWindow.cs`, `ShadowWindow.cs`이며, 삼각형 계산을 `Triangle.cs`에서 읽을 수 있습니다. 공용 프로젝트나 프로젝트 간 참조는 없습니다.
 
 ## 처음 설정된 광선과 구 — 2단계 기준
 
@@ -169,7 +172,7 @@ z=0 ---------- z=0.1 --------- z=0.5 --------- z=0.9
 
 실제 이미지는 짝수 해상도이므로 위 예시는 정확한 중앙점을 가정한 수학적 설명입니다.
 
-교차 함수는 세 단계 모두 강의 예제처럼 두 근의 최솟값을 선택합니다. 선택한 거리가 음수이면 배경색을 반환하며, 시작점이 구 내부일 때 양수인 출구를 다시 선택하는 처리는 포함하지 않습니다. 1·2단계에서 슬라이더로 구가 시작점을 감싸게 만들면 해당 픽셀이 검게 표시될 수 있습니다.
+구 교차 함수는 모든 단계에서 강의 예제처럼 두 근의 최솟값을 선택합니다. 선택한 거리가 음수이면 배경색을 반환하며, 시작점이 구 내부일 때 양수인 출구를 다시 선택하는 처리는 포함하지 않습니다. 1·2단계에서 슬라이더로 구가 시작점을 감싸게 만들면 해당 픽셀이 검게 표시될 수 있습니다.
 
 ## 1단계: 충돌 거리로 밝기 표현하기 — 강의 Step4
 
@@ -342,6 +345,52 @@ if (Vector3.Dot(normal2, faceNormal) < 0.0f) return false;
 
 픽셀 좌표 변환은 앞 단계처럼 화면 위가 Y=-1, 아래가 Y=+1입니다. 강의의 화면 Y 방향과 반대이므로 같은 정점이어도 화면에서 위아래가 반대로 보입니다.
 
+## 5단계: 그림자 광선으로 가림 확인하기 — 강의 Step8
+
+구 하나와 바닥을 구성하는 삼각형 두 개를 사용합니다. 기존의 삼각형 내부 판정과 Phong 계산을 이어서 사용하고, `TraceRay`에 그림자 판정을 추가했습니다.
+
+| 항목 | 초기값 |
+| --- | --- |
+| 구 중심 / 반지름 | `(0, 0, 0.6)` / `0.4` |
+| 구 재질 | `Ambient = (0.2, 0, 0)`, `Color = (1, 0.1, 0.1)`, `Specular = (1.5, 1.5, 1.5)`, `Alpha = 50` |
+| 바닥 삼각형 1 | `(-2, -1, 0)`, `(-2, -1, 4)`, `(2, -1, 4)` |
+| 바닥 삼각형 2 | `(-2, -1, 0)`, `(2, -1, 4)`, `(2, -1, 0)` |
+| 바닥 재질 | `Ambient = (0.2, 0.2, 0.2)`, `Color = (0.8, 0.8, 0.8)`, `Specular = (1, 1, 1)`, `Alpha = 50` |
+| 광원 | `(0, 1, 0.2)` |
+| 눈 | `(0, 0, -1.5)` |
+| 그림자 / 원근투영 | 모두 켜짐 |
+
+두 바닥 삼각형은 Y=-1인 평면을 만들고 법선은 +Y를 향합니다. 강의처럼 바닥의 뒷면 제외를 사용합니다. 5단계의 화면 좌표 변환은 `worldY = 1 - scaledY`이므로 화면 위가 +Y, 아래가 -Y입니다. 앞 단계와 Y 방향이 다르며, 강의의 바닥 좌표를 그대로 아래쪽에 표시하기 위한 설정입니다.
+
+### TraceRay의 계산 순서
+
+1. 눈에서 화면을 통과하는 광선으로 가장 가까운 물체를 찾습니다. 실제 광선 시작점은 앞 단계처럼 화면 위의 픽셀입니다.
+2. 교점에서 조금 이동한 위치를 시작점으로 그림자 광선을 만듭니다.
+3. 그 광선이 물체에 닿으면 원래 교점 물체의 `Ambient`만 반환합니다.
+4. 닿지 않으면 기존의 `Ambient + Diffuse + Specular`를 계산합니다.
+
+요청한 C++ 식 `Ray shodowRay{ hit.point + 0.00001f, light.pos };`는 다음처럼 옮겼습니다. C#에서는 같은 값을 XYZ에 더하기 위해 `new Vector3(0.00001f)`를 사용합니다.
+
+```csharp
+Ray shadowRay = new Ray
+{
+    Start = hit.Point + new Vector3(0.00001f),
+    Direction = Light.Position
+};
+
+Hit shadowHit = FindClosestCollision(shadowRay);
+if (shadowHit.Distance >= 0.0f)
+    return sceneObject.Ambient;
+```
+
+`UseShadows`가 켜졌을 때 이 부분을 실행합니다. 꺼졌을 때는 같은 장면에 기존 Phong 조명만 적용합니다. 바닥 그림자는 완전한 검정 대신 바닥의 주변광 색인 `(0.2, 0.2, 0.2)`가 됩니다.
+
+### 요청한 식의 범위
+
+이 단계는 보내주신 식을 그대로 옮긴 구현입니다. `Light.Position`을 광선 방향에 직접 넣으므로, 그림자 광선의 방향은 모든 교점에서 같습니다. 교점에서 광원으로 향하는 `Light.Position - hit.Point`를 사용하거나 방향을 정규화하는 계산은 포함하지 않습니다.
+
+또한 구 교차 함수는 단위 방향을 가정하므로, 정규화하지 않은 그림자 광선에서는 교차 판정이 실제와 달라질 수 있습니다. 광원까지의 거리 제한도 없어서 광원 뒤의 충돌도 그림자로 판단할 수 있습니다. 광원을 움직일 때 정확한 점광원 그림자와 차이가 날 수 있는 이유입니다. `hit.Point + new Vector3(0.00001f)`는 모든 좌표에 작은 값을 더하는 방식이며, 법선 방향으로 이동하는 방식과도 다릅니다.
+
 ## 구 하나만 그릴 수 있는데 왜 Ray를 사용할까?
 
 1·2단계처럼 고정된 방향으로 구 하나만 그리는 조건에서는 `Ray` 구조체를 따로 만들지 않아도 됩니다. 구의 방정식에서 각 X·Y 위치의 앞면 Z를 직접 계산하거나, 원에 명암을 넣는 방식으로도 구처럼 보이는 그림을 만들 수 있습니다.
@@ -369,11 +418,13 @@ frontZ = Cz - sqrt(k)    (k >= 0인 경우)
 
 1. `Program.cs`: 프로그램 시작과 창 실행
 2. `Raytracer.cs`: 광선과 물체의 교차 계산, 해당 단계의 색 계산과 픽셀 생성
-3. `SphereWindow.cs` 또는 `TriangleWindow.cs`: 슬라이더·체크박스 입력과 화면 표시
+3. `SphereWindow.cs`, `TriangleWindow.cs` 또는 `ShadowWindow.cs`: 슬라이더·체크박스 입력과 화면 표시
 
 3단계에서는 `Render → TraceRay → FindClosestCollision → IntersectRayCollision` 순서로 호출을 따라가면 원근투영과 교차 판정의 연결을 볼 수 있습니다.
 
 4단계에서는 `Render → TraceRay → FindClosestCollision → Triangle.IntersectRayCollision → IntersectRayTriangle` 순서로 삼각형 계산을 따라갈 수 있습니다.
+
+5단계에서는 `TraceRay` 안에서 `FindClosestCollision`이 화면 광선과 그림자 광선에 대해 각각 호출되는 흐름을 확인할 수 있습니다.
 
 구 그리기 강의의 학습 주제를 바탕으로 Codex의 도움을 받아 작성했습니다.
 

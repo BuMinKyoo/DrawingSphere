@@ -3,8 +3,11 @@ echo 1. DrawingSphere
 echo 2. PhongShading
 echo 3. PerspectiveView
 echo 4. Triangle
-choice /c 1234 /n /m "Select a step [1/2/3/4]: "
-if errorlevel 4 (
+echo 5. Shadow
+choice /c 12345 /n /m "Select a step [1/2/3/4/5]: "
+if errorlevel 5 (
+    set "taskProject=Step5_Shadow\Step5_Shadow.csproj"
+) else if errorlevel 4 (
     set "taskProject=Step4_Triangle\Step4_Triangle.csproj"
 ) else if errorlevel 3 (
     set "taskProject=Step3_PerspectiveView\Step3_PerspectiveView.csproj"
