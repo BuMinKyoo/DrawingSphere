@@ -1,24 +1,45 @@
 # DrawingSphere
 
-화면의 픽셀마다 광선을 만들고, 구와 만나는 위치를 계산해 구 하나를 그리는 작은 C# 공부용 프로젝트입니다. 시작점과 방향으로 광선을 표현하고, 구와의 교차 결과를 픽셀의 색으로 바꾸는 과정을 이해하는 것이 목적입니다. Step5의 Phong 조명을 추가해 빛의 위치와 표면의 법선에 따라 명암과 반짝임이 달라집니다.
+광선과 구의 교차 계산부터 Phong 조명, 원근투영, 삼각형 교차까지 순서대로 공부하는 작은 C# Windows Forms 솔루션입니다. 각 단계는 독립된 프로젝트이며, 같은 창과 픽셀 그리기 구조를 사용합니다.
 
-## 실행과 조작
+| 프로젝트 | 학습 내용 | 기준 |
+| --- | --- | --- |
+| [Step1_DrawingSphere](Step1_DrawingSphere/) | 정투영 광선과 구의 교차, 충돌 거리로 밝기 표현 | `470bbc8`의 소스 |
+| [Step2_PhongShading](Step2_PhongShading/) | 정투영에 Ambient·Diffuse·Specular 조명 추가 | `eb51113`의 소스 |
+| [Step3_PerspectiveView](Step3_PerspectiveView/) | 구 세 개의 최근접 충돌과 정투영·원근투영 비교 | 강의 Step6의 계산을 2단계 코드에 추가 |
+| [Step4_Triangle](Step4_Triangle/) | 광선·평면 교점과 삼각형 내부 판정, 구와의 최근접 충돌 | 강의 Step7의 IntersectRayTriangle 흐름 |
 
-Windows와 .NET 10 SDK가 필요합니다. `run.cmd`를 더블 클릭하거나 이 폴더의 터미널에서 실행합니다.
+## 실행
+
+Windows와 .NET 10 SDK가 필요합니다. 외부 패키지는 사용하지 않습니다.
+
+Visual Studio에서는 .NET 10을 지원하는 버전과 **.NET 데스크톱 개발** 워크로드를 사용합니다.
+
+1. `DrawingSphere.sln`을 엽니다.
+2. 솔루션 탐색기에서 실행할 프로젝트를 마우스 오른쪽 버튼으로 클릭합니다.
+3. **시작 프로젝트로 설정**을 선택하고 `F5` 또는 `Ctrl+F5`로 실행합니다.
+
+`run.cmd`를 더블 클릭해 1·2·3·4 중 실행할 단계를 선택할 수도 있습니다. 터미널에서는 다음 명령을 사용합니다.
 
 ```powershell
-dotnet run --project SimpleDrawingSphere.csproj -c Release
+dotnet build DrawingSphere.sln -c Release
+dotnet run --project Step1_DrawingSphere/Step1_DrawingSphere.csproj -c Release
+dotnet run --project Step2_PhongShading/Step2_PhongShading.csproj -c Release
+dotnet run --project Step3_PerspectiveView/Step3_PerspectiveView.csproj -c Release
+dotnet run --project Step4_Triangle/Step4_Triangle.csproj -c Release
 ```
 
-프로젝트 파일은 `SimpleDrawingSphere.csproj`입니다. 솔루션 파일(`.sln`)이나 별도 외부 패키지는 필요하지 않습니다.
+## 단계별 조작
 
-- 중심 X·Y·Z와 반지름은 슬라이더로 조절합니다.
-- 광원 X·Y·Z, 반짝임 지수 `Alpha`, 반짝임 세기 `Ks`도 슬라이더로 조절합니다.
-- 각 슬라이더의 현재 값은 소수점 두 자리로 표시됩니다. 아래쪽 항목은 오른쪽 패널을 세로로 스크롤하면 보입니다.
-- `확산색 (Diffuse)` 버튼으로 빛을 받아 드러나는 구의 기본색을 선택합니다.
-- `Ambient`와 `Specular` 색은 `Raytracer.cs`의 초기값을 수정해서 바꿀 수 있습니다.
+- **1단계:** 중심 X·Y·Z, 반지름과 색을 조절합니다. 흰색 구의 충돌 거리에 따라 밝기가 달라집니다.
+- **2단계:** 기존 구 조절에 광원 X·Y·Z, 반짝임 지수 `Alpha`, 반짝임 세기 `Ks`를 더합니다. `확산색 (Diffuse)` 버튼으로 기본색을 바꿉니다.
+- **3단계:** `원근 투영` 체크를 켜고 끄며 같은 장면을 비교합니다. 빨강·초록·파랑 구의 Z좌표와 광원 X·Y·Z를 조절합니다. 구의 반지름은 모두 `0.4`로 고정합니다.
+- **4단계:** 빨간 구와 회색 삼각형을 함께 그립니다. 각각의 Z좌표, 광원 X·Y·Z를 조절하고 정투영·원근투영을 비교합니다. `삼각형 뒷면 제외`는 처음에는 꺼져 있습니다.
+- 슬라이더의 값은 소수점 두 자리로 표시됩니다. 아래쪽 항목은 오른쪽 패널을 세로로 스크롤하면 보입니다.
 
-## 처음 설정된 광선과 구
+1·2·3단계는 `Program.cs`, `Raytracer.cs`, `SphereWindow.cs` 세 소스 파일을 갖습니다. 4단계는 창 파일이 `TriangleWindow.cs`이고, 삼각형 계산을 `Triangle.cs`에서 읽을 수 있습니다. 공용 프로젝트나 프로젝트 간 참조는 없습니다.
+
+## 처음 설정된 광선과 구 — 2단계 기준
 
 | 항목 | 초기값 또는 계산 방법 |
 | --- | --- |
@@ -35,6 +56,8 @@ dotnet run --project SimpleDrawingSphere.csproj -c Release
 | 반짝임 지수 `Sphere.Alpha` | `9` |
 | 반짝임 세기 `Sphere.Ks` | `0.8` |
 | 광원 위치 `Light.Position` | `(0, 0, -1)` |
+
+아래 초기값과 광선 설명은 2단계 기준입니다. 1단계의 위치·반지름·광선은 같고 기본색만 흰색이며, 조명 필드는 없습니다.
 
 구의 초기 설정은 다음과 같습니다.
 
@@ -62,7 +85,7 @@ Ray ray = new Ray
 
 C++ 예제의 `ray.start`와 `ray.dir`이 이 프로젝트의 `Start`와 `Direction`에 해당합니다. 방향은 모든 픽셀에서 같고, 시작 위치는 픽셀마다 다릅니다.
 
-## 픽셀마다 레이저 하나를 쏜다고 생각하기
+## 픽셀마다 레이저 하나를 쏜다고 생각하기 — 1·2단계
 
 이미지의 각 픽셀에서 보이지 않는 레이저 하나를 +Z 방향으로 쏜다고 생각하면 됩니다. 구가 놓인 쪽으로 모두 평행하게 진행하며, 어떤 광선은 구를 만나고 어떤 광선은 빗나갑니다. 모든 광선이 구 중심을 향하도록 방향을 바꾸는 방식은 아닙니다.
 
@@ -73,7 +96,7 @@ C++ 예제의 `ray.start`와 `ray.dir`이 이 프로젝트의 `Start`와 `Direct
 
 연속된 공간의 모든 점을 검사하는 것은 아닙니다. 현재 이미지의 640 × 320개 픽셀에 대응하는 시작점을 한 번씩 검사합니다. 평행한 광선을 사용하는 이 방식이 정투영에 해당합니다. 레이저는 계산을 상상하기 위한 비유입니다.
 
-## 광선과 구의 공통점을 어떻게 구할까?
+## 광선과 구의 공통점을 어떻게 구할까? — 1·2단계의 중앙 광선 예
 
 광선 위의 점은 다음 식으로 나타냅니다.
 
@@ -146,21 +169,21 @@ z=0 ---------- z=0.1 --------- z=0.5 --------- z=0.9
 
 실제 이미지는 짝수 해상도이므로 위 예시는 정확한 중앙점을 가정한 수학적 설명입니다.
 
-현재 구현은 강의 예제처럼 두 근의 최솟값을 선택한 뒤, 선택한 거리가 음수이면 배경색을 반환합니다. 시작점이 구 내부에 있을 때 양수인 출구를 다시 선택하는 처리는 포함하지 않습니다. 따라서 슬라이더로 구가 시작점을 감싸게 만들면 해당 픽셀이 검게 표시될 수 있습니다.
+교차 함수는 세 단계 모두 강의 예제처럼 두 근의 최솟값을 선택합니다. 선택한 거리가 음수이면 배경색을 반환하며, 시작점이 구 내부일 때 양수인 출구를 다시 선택하는 처리는 포함하지 않습니다. 1·2단계에서 슬라이더로 구가 시작점을 감싸게 만들면 해당 픽셀이 검게 표시될 수 있습니다.
 
-## Step4: 충돌 거리로 밝기 표현하기
+## 1단계: 충돌 거리로 밝기 표현하기 — 강의 Step4
 
-Phong 조명을 추가하기 전에는 다음 한 줄로 색을 정했습니다.
+1단계에서는 다음 한 줄로 색을 정합니다.
 
 ```csharp
 return Sphere.Color * hit.Distance;
 ```
 
-당시 기본색이 흰색 `(1, 1, 1)`이고 거리가 `0.1`이면, 색은 `(0.1, 0.1, 0.1)`이 됩니다. 이 식은 거리가 클수록 밝아지는 깊이 확인용 표현입니다. 광원 위치나 표면 방향은 색 계산에 사용하지 않았습니다.
+1단계의 기본색이 흰색 `(1, 1, 1)`이고 거리가 `0.1`이면, 색은 `(0.1, 0.1, 0.1)`이 됩니다. 이 식은 거리가 클수록 밝아지는 깊이 확인용 표현입니다. 광원 위치나 표면 방향은 색 계산에 사용하지 않습니다.
 
-## Step5: Phong 조명으로 명암과 반짝임 표현하기
+## 2단계: Phong 조명으로 명암과 반짝임 표현하기 — 강의 Step5
 
-현재 `TraceRay`에서는 교차점의 거리 대신 다음 세 성분을 더해 색을 정합니다.
+2단계의 `TraceRay`에서는 교차점의 거리 대신 다음 세 성분을 더해 색을 정합니다. 3단계도 같은 Phong 계산을 사용합니다.
 
 ```text
 색 = Ambient + Diffuse 색 × diffuse + Specular 색 × specular × Ks
@@ -217,9 +240,111 @@ return ambientColor + diffuseColor + specularColor;
 
 강의와 같은 기본 Phong 계산이며, 광원까지의 거리에 따른 빛의 감쇠나 다른 물체에 가려 생기는 그림자는 계산하지 않습니다. 구의 중심과 반지름, 좌표 변환, 교차점 계산은 기존 Step4 형태를 유지합니다.
 
+## 3단계: 같은 크기의 구를 원근투영으로 보기 — 강의 Step6
+
+구의 초기 위치와 색은 다음과 같습니다. 세 구의 반지름은 모두 `0.4`입니다.
+
+| 구 | 중심 | Diffuse 색 |
+| --- | --- | --- |
+| 빨강 | `(0.5, 0, 0.5)` | `(1, 0.2, 0.2)` |
+| 초록 | `(0, 0, 1.0)` | `(0.2, 1, 0.2)` |
+| 파랑 | `(-0.5, 0, 1.5)` | `(0.2, 0.2, 1)` |
+
+각 구는 `Ambient = (0.2, 0.2, 0.2)`, `Specular = (0.5, 0.5, 0.5)`, `Alpha = 10`, `Ks = 1`을 사용합니다. 광원은 `(0, 1, -1)`, 눈의 위치는 `(0, 0, -1.5)`입니다. 눈의 위치는 코드에 고정되어 있습니다.
+
+### 광선 방향만 바꾸어 비교하기
+
+픽셀을 월드 좌표로 바꾸는 4×2 범위와 `z = 0` 시작 평면은 앞 단계와 같습니다.
+
+```csharp
+Vector3 pixelPosWorld = TransformScreenToWorld(x, y, width, height);
+Vector3 rayDirection = Vector3.UnitZ;
+
+if (UsePerspective)
+{
+    Vector3 eyeToPixel = pixelPosWorld - EyePosition;
+    rayDirection = Vector3.Normalize(eyeToPixel);
+}
+
+Ray ray = new Ray
+{
+    Start = pixelPosWorld,
+    Direction = rayDirection
+};
+```
+
+정투영에서는 모든 픽셀의 광선이 `(0, 0, 1)`로 평행합니다. 원근투영에서는 고정된 눈과 각 픽셀을 잇는 방향을 사용하므로 픽셀마다 광선의 기울기가 달라집니다. `normalize`는 그 방향을 유지하고 길이만 1로 맞춥니다.
+
+시작점은 강의처럼 화면의 `pixelPosWorld`입니다. 광선을 뒤로 연장하면 같은 눈 위치에서 만나지만, 실제 충돌 검사는 화면부터 앞쪽으로 진행합니다. 따라서 눈과 화면 사이 물체는 검사하지 않고, `hit.Distance`도 눈이 아닌 화면의 각 픽셀에서부터 잰 거리입니다.
+
+### 구의 크기는 어디서 달라질까?
+
+구의 반지름을 줄이는 별도 코드는 없습니다. 각 픽셀마다 `b`, `c`, `nabla`로 구와의 교차를 검사하고, 광선 앞쪽에서 만난 픽셀에만 구의 색을 넣습니다.
+
+원근 방향에서는 구가 멀어질수록 바깥쪽 픽셀의 광선이 구를 빗나가게 됩니다. 구와 만나는 픽셀의 범위가 좁아져 작게 보이는 것입니다. 체크를 해제한 정투영에서는 Z좌표를 바꾸어도 같은 반지름의 구는 같은 크기로 보입니다.
+
+### 가장 가까운 구의 충돌 정보를 선택하기
+
+`FindClosestCollision`은 구 세 개의 충돌 거리를 비교해 가장 가까운 양수 또는 0인 거리를 선택합니다. 배열은 일부러 파랑·초록·빨강 순서로 배치해, 첫 번째로 검사한 구를 바로 반환하는 방식과 구분합니다.
+
+```csharp
+if (hit.Distance >= 0.0f &&
+    (closestHit.Distance < 0.0f || hit.Distance < closestHit.Distance))
+{
+    closestHit = hit;
+    closestHit.Object = sphere;
+}
+```
+
+충돌 정보 전체를 먼저 복사하고, 그다음 어떤 구에 맞았는지를 저장해야 합니다. 순서를 바꾸면 `hit.Object`의 빈 참조가 저장한 구 참조를 덮어씁니다. 아무 구에도 맞지 않으면 `Distance = -1`로 반환하고 검은색 배경을 사용합니다.
+
+## 4단계: 광선으로 삼각형 그리기 — 강의 Step7
+
+강의처럼 빨간 구 하나와 회색 삼각형 하나를 같은 장면에 둡니다. `FindClosestCollision`은 두 물체의 충돌 거리를 비교하고, 가장 가까운 물체의 재질로 Phong 조명을 계산합니다. 구와 삼각형의 공통 재질과 교차 함수는 작은 `SceneObject` 클래스로 묶었습니다.
+
+| 항목 | 초기값 |
+| --- | --- |
+| 구 중심 / 반지름 | `(0.6, 0, 0.5)` / `0.4` |
+| 삼각형 `V0` | `(-2, -2, 2)` |
+| 삼각형 `V1` | `(-2, 2, 2)` |
+| 삼각형 `V2` | `(2, 2, 2)` |
+| 면 법선 `faceNormal` | `(0, 0, -1)` |
+| 눈 / 광원 | `(0, 0, -1.5)` / `(0, 1, -1)` |
+| 삼각형 재질 | `Color = (0.5, 0.5, 0.5)`, `Ambient = (0.2, 0.2, 0.2)`, `Specular = (0.5, 0.5, 0.5)`, `Alpha = 5`, `Ks = 1` |
+
+### IntersectRayTriangle 읽기
+
+강의의 순서와 벡터 계산을 유지했습니다.
+
+1. `cross(v1 - v0, v2 - v0)`를 정규화해 면 법선을 구합니다.
+2. 광선이 평면과 거의 평행하면 실패로 처리합니다.
+3. 평면 교점까지의 거리 `t`를 구합니다. 음수이면 광선 뒤쪽이므로 실패입니다.
+4. `point = orig + t * dir`로 평면과 만난 점을 구합니다.
+5. 작은 삼각형 세 개의 법선을 구해 면 법선과 방향을 비교합니다. 하나라도 내적이 음수이면 삼각형 밖입니다.
+
+```csharp
+t = (Vector3.Dot(v0, faceNormal) - Vector3.Dot(orig, faceNormal))
+    / Vector3.Dot(dir, faceNormal);
+point = orig + t * dir;
+
+Vector3 normal0 = Vector3.Cross(point - v2, v1 - v2);
+Vector3 normal1 = Vector3.Cross(point - v0, v2 - v0);
+Vector3 normal2 = Vector3.Cross(point - v1, v0 - v1);
+
+if (Vector3.Dot(normal0, faceNormal) < 0.0f) return false;
+if (Vector3.Dot(normal1, faceNormal) < 0.0f) return false;
+if (Vector3.Dot(normal2, faceNormal) < 0.0f) return false;
+```
+
+작은 법선은 강의 주석처럼 `Normalize`를 생략했습니다. 내적의 부호는 같고, 교점이 변 위에 있어 외적이 0인 경우도 처리할 수 있습니다. 조명에 사용하는 면 법선의 정규화는 유지합니다. 강의에서 아직 계산하지 않는 텍스처용 `u`, `v` 인자는 생략했습니다.
+
+뒷면 제외를 켜면 `dot(-dir, faceNormal) < 0`인 광선을 제외합니다. 초기 삼각형은 눈 쪽을 향하므로 켜고 꺼도 같은 그림입니다. `V1`과 `V2`의 순서를 바꿔 면 법선을 뒤집으면 차이를 확인할 수 있습니다. 체크를 끈 경우에는 강의처럼 법선 방향을 그대로 사용해 양쪽 면에 조명을 계산합니다.
+
+픽셀 좌표 변환은 앞 단계처럼 화면 위가 Y=-1, 아래가 Y=+1입니다. 강의의 화면 Y 방향과 반대이므로 같은 정점이어도 화면에서 위아래가 반대로 보입니다.
+
 ## 구 하나만 그릴 수 있는데 왜 Ray를 사용할까?
 
-고정된 방향으로 구 하나만 그리는 지금 조건에서는 `Ray` 구조체를 따로 만들지 않아도 됩니다. 구의 방정식에서 각 X·Y 위치의 앞면 Z를 직접 계산하거나, 원에 명암을 넣는 방식으로도 구처럼 보이는 그림을 만들 수 있습니다.
+1·2단계처럼 고정된 방향으로 구 하나만 그리는 조건에서는 `Ray` 구조체를 따로 만들지 않아도 됩니다. 구의 방정식에서 각 X·Y 위치의 앞면 Z를 직접 계산하거나, 원에 명암을 넣는 방식으로도 구처럼 보이는 그림을 만들 수 있습니다.
 
 기본 장면처럼 구가 시작 평면 앞에 있을 때는 다음처럼 앞면의 Z를 직접 구할 수도 있습니다.
 
@@ -240,9 +365,15 @@ frontZ = Cz - sqrt(k)    (k >= 0인 경우)
 
 ## 코드 읽는 순서
 
+각 단계의 폴더 안에서 다음 순서로 읽습니다.
+
 1. `Program.cs`: 프로그램 시작과 창 실행
-2. `Raytracer.cs`: `Ray`, `Hit`, `Light`, `Sphere`, `Raytracer`의 교차 계산, Phong 색 계산과 픽셀 생성
-3. `SphereWindow.cs`: 구·광원·반짝임 슬라이더, 확산색 입력과 화면 표시
+2. `Raytracer.cs`: 광선과 물체의 교차 계산, 해당 단계의 색 계산과 픽셀 생성
+3. `SphereWindow.cs` 또는 `TriangleWindow.cs`: 슬라이더·체크박스 입력과 화면 표시
+
+3단계에서는 `Render → TraceRay → FindClosestCollision → IntersectRayCollision` 순서로 호출을 따라가면 원근투영과 교차 판정의 연결을 볼 수 있습니다.
+
+4단계에서는 `Render → TraceRay → FindClosestCollision → Triangle.IntersectRayCollision → IntersectRayTriangle` 순서로 삼각형 계산을 따라갈 수 있습니다.
 
 구 그리기 강의의 학습 주제를 바탕으로 Codex의 도움을 받아 작성했습니다.
 
@@ -250,3 +381,4 @@ frontZ = Cz - sqrt(k)    (k >= 0인 경우)
 
 - [Line–sphere intersection — Wikipedia](https://en.wikipedia.org/wiki/Line-sphere_intersection): 직선과 구의 교차 방정식 참고
 - [Phong Illumination Model — Scratchapixel](https://www.scratchapixel.com/lessons/3d-basic-rendering/phong-shader-BRDF/phong-illumination-models-brdf.html): Diffuse와 Specular 계산 참고
+- [Ray–Triangle Intersection — Scratchapixel](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution.html): 평면 교점과 삼각형 내부 판정 참고
