@@ -4,8 +4,11 @@ echo 2. PhongShading
 echo 3. PerspectiveView
 echo 4. Triangle
 echo 5. Shadow
-choice /c 12345 /n /m "Select a step [1/2/3/4/5]: "
-if errorlevel 5 (
+echo 6. Supersampling
+choice /c 123456 /n /m "Select a step [1/2/3/4/5/6]: "
+if errorlevel 6 (
+    set "taskProject=Step6_Supersampling\Step6_Supersampling.csproj"
+) else if errorlevel 5 (
     set "taskProject=Step5_Shadow\Step5_Shadow.csproj"
 ) else if errorlevel 4 (
     set "taskProject=Step4_Triangle\Step4_Triangle.csproj"

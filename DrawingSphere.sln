@@ -12,6 +12,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Step4_Triangle", "Step4_Tri
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Step5_Shadow", "Step5_Shadow\Step5_Shadow.csproj", "{C84B9D5D-9B4C-4DC8-8913-FDB55B2F4C29}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Step6_Supersampling", "Step6_Supersampling\Step6_Supersampling.csproj", "{6F2D3C64-9BE4-4CC8-9EF9-E8C121A68E84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{C84B9D5D-9B4C-4DC8-8913-FDB55B2F4C29}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C84B9D5D-9B4C-4DC8-8913-FDB55B2F4C29}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C84B9D5D-9B4C-4DC8-8913-FDB55B2F4C29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F2D3C64-9BE4-4CC8-9EF9-E8C121A68E84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F2D3C64-9BE4-4CC8-9EF9-E8C121A68E84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F2D3C64-9BE4-4CC8-9EF9-E8C121A68E84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F2D3C64-9BE4-4CC8-9EF9-E8C121A68E84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,6 @@
 # DrawingSphere
 
-광선과 구의 교차 계산부터 Phong 조명, 원근투영, 삼각형 교차와 그림자까지 순서대로 공부하는 작은 C# Windows Forms 솔루션입니다. 각 단계는 독립된 프로젝트이며, 같은 창과 픽셀 그리기 구조를 사용합니다.
+광선과 구의 교차 계산부터 Phong 조명, 원근투영, 삼각형 교차, 그림자와 슈퍼샘플링까지 순서대로 공부하는 작은 C# Windows Forms 솔루션입니다. 각 단계는 독립된 프로젝트이며, 같은 창과 픽셀 그리기 구조를 사용합니다.
 
 | 프로젝트 | 학습 내용 | 기준 |
 | --- | --- | --- |
@@ -9,6 +9,7 @@
 | [Step3_PerspectiveView](Step3_PerspectiveView/) | 구 세 개의 최근접 충돌과 정투영·원근투영 비교 | 강의 Step6의 계산을 2단계 코드에 추가 |
 | [Step4_Triangle](Step4_Triangle/) | 광선·평면 교점과 삼각형 내부 판정, 구와의 최근접 충돌 | 강의 Step7의 IntersectRayTriangle 흐름 |
 | [Step5_Shadow](Step5_Shadow/) | 표면에서 그림자 광선을 만들고 가려진 곳에 Ambient만 적용 | 강의 Step8의 요청된 traceRay 식 |
+| [Step6_Supersampling](Step6_Supersampling/) | 픽셀을 2×2로 재귀 분할하고 색을 평균해 경계의 계단 현상 줄이기 | 강의 Step11의 traceRay2x2 흐름 |
 
 ## 실행
 
@@ -20,7 +21,7 @@ Visual Studio에서는 .NET 10을 지원하는 버전과 **.NET 데스크톱 개
 2. 솔루션 탐색기에서 실행할 프로젝트를 마우스 오른쪽 버튼으로 클릭합니다.
 3. **시작 프로젝트로 설정**을 선택하고 `F5` 또는 `Ctrl+F5`로 실행합니다.
 
-`run.cmd`를 더블 클릭해 1·2·3·4·5 중 실행할 단계를 선택할 수도 있습니다. 터미널에서는 다음 명령을 사용합니다.
+`run.cmd`를 더블 클릭해 1·2·3·4·5·6 중 실행할 단계를 선택할 수도 있습니다. 터미널에서는 다음 명령을 사용합니다.
 
 ```powershell
 dotnet build DrawingSphere.sln -c Release
@@ -29,6 +30,7 @@ dotnet run --project Step2_PhongShading/Step2_PhongShading.csproj -c Release
 dotnet run --project Step3_PerspectiveView/Step3_PerspectiveView.csproj -c Release
 dotnet run --project Step4_Triangle/Step4_Triangle.csproj -c Release
 dotnet run --project Step5_Shadow/Step5_Shadow.csproj -c Release
+dotnet run --project Step6_Supersampling/Step6_Supersampling.csproj -c Release
 ```
 
 ## 단계별 조작
@@ -38,9 +40,10 @@ dotnet run --project Step5_Shadow/Step5_Shadow.csproj -c Release
 - **3단계:** `원근 투영` 체크를 켜고 끄며 같은 장면을 비교합니다. 빨강·초록·파랑 구의 Z좌표와 광원 X·Y·Z를 조절합니다. 구의 반지름은 모두 `0.4`로 고정합니다.
 - **4단계:** 빨간 구와 회색 삼각형을 함께 그립니다. 각각의 Z좌표, 광원 X·Y·Z를 조절하고 정투영·원근투영을 비교합니다. `삼각형 뒷면 제외`는 처음에는 꺼져 있습니다.
 - **5단계:** 구 X·Y·Z와 광원 X·Y·Z를 조절합니다. `그림자` 체크를 켜고 끄며 바닥의 색을 비교합니다. 바닥은 삼각형 두 개로 만들고 위치를 고정합니다.
-- 슬라이더의 값은 소수점 두 자리로 표시됩니다. 아래쪽 항목은 오른쪽 패널을 세로로 스크롤하면 보입니다.
+- **6단계:** 5단계와 같은 장면에서 분할 단계를 0~3으로 바꿉니다. 픽셀당 1·4·16·64회를 계산하며 구의 윤곽과 그림자 경계를 비교합니다. 기본은 1단계(2×2, 4회)입니다.
+- 위치 슬라이더의 값은 소수점 두 자리로 표시됩니다. 아래쪽 항목은 오른쪽 패널을 세로로 스크롤하면 보입니다.
 
-1·2·3단계는 `Program.cs`, `Raytracer.cs`, `SphereWindow.cs` 세 소스 파일을 갖습니다. 4·5단계의 창 파일은 각각 `TriangleWindow.cs`, `ShadowWindow.cs`이며, 삼각형 계산을 `Triangle.cs`에서 읽을 수 있습니다. 공용 프로젝트나 프로젝트 간 참조는 없습니다.
+1·2·3단계는 `Program.cs`, `Raytracer.cs`, `SphereWindow.cs` 세 소스 파일을 갖습니다. 4·5·6단계의 창 파일은 각각 `TriangleWindow.cs`, `ShadowWindow.cs`, `SupersamplingWindow.cs`이며, 삼각형 계산을 `Triangle.cs`에서 읽을 수 있습니다. 공용 프로젝트나 프로젝트 간 참조는 없습니다.
 
 ## 처음 설정된 광선과 구 — 2단계 기준
 
@@ -391,6 +394,41 @@ if (shadowHit.Distance >= 0.0f)
 
 또한 구 교차 함수는 단위 방향을 가정하므로, 정규화하지 않은 그림자 광선에서는 교차 판정이 실제와 달라질 수 있습니다. 광원까지의 거리 제한도 없어서 광원 뒤의 충돌도 그림자로 판단할 수 있습니다. 광원을 움직일 때 정확한 점광원 그림자와 차이가 날 수 있는 이유입니다. `hit.Point + new Vector3(0.00001f)`는 모든 좌표에 작은 값을 더하는 방식이며, 법선 방향으로 이동하는 방식과도 다릅니다.
 
+## 6단계: 픽셀 안에서 여러 번 샘플링하기 — 강의 Step11
+
+한 픽셀에서 광선을 한 번만 쏘면 구의 윤곽이나 그림자 경계가 계단처럼 보일 수 있습니다. 픽셀 안의 여러 위치에서 각각 색을 구한 뒤 평균하면, 물체와 배경이 섞이는 경계를 더 부드럽게 표현할 수 있습니다.
+
+5단계의 구·바닥·Phong 조명과 그림자 계산을 이어서 사용합니다. 렌더링 크기는 640×320이며, 샘플링은 물체 교차 계산을 바꾸는 대신 픽셀 안에서 광선을 쏘는 횟수와 위치를 바꿉니다.
+
+| 분할 단계 | 샘플 배치 | 픽셀당 광선 수 |
+| --- | --- | --- |
+| 0 | 1×1 | 1 |
+| 1 | 2×2 | 4 |
+| 2 | 4×4 | 16 |
+| 3 | 8×8 | 64 |
+
+`SamplingLevel`의 기본값은 1입니다. 슬라이더를 0으로 옮기면 기존의 한 번 샘플링과 비교할 수 있습니다. 단계가 하나 늘 때마다 계산 횟수는 4배가 되므로, 3단계에서는 위치 슬라이더를 움직인 뒤 화면 갱신이 느려질 수 있습니다.
+
+### TraceRay2x2의 계산 순서
+
+1. `dx = 4 / (width - 1)`, `dy = 2 / (height - 1)`로 월드 좌표에서 픽셀 간격을 구합니다.
+2. 분할 단계가 0이면 해당 위치에서 광선을 만들고 `TraceRay`를 한 번 호출합니다.
+3. 0보다 크면 픽셀을 가로·세로 절반으로 나눕니다. 네 작은 영역의 중심은 현재 중심에서 X로 ±dx/4, Y로 ±dy/4인 위치입니다.
+4. 각 작은 영역에서 같은 함수를 한 단계 낮춰 호출하고, 네 색을 더해 4로 나눕니다.
+5. 마지막으로 평균 색을 0~1로 제한하고 RGB 정수 값으로 변환합니다.
+
+```csharp
+Vector3 subPos = firstSubPos;
+subPos.X += i * subDx;
+subPos.Y += j * subDy;
+pixelColor += TraceRay2x2(subPos, subDx, subDy, recursiveLevel - 1);
+
+// 네 위치에서 구한 색을 평균냅니다.
+return pixelColor * 0.25f;
+```
+
+강의 제공 코드의 Y 위치 계산에도 `i`가 들어간 부분은 `j`로 바꿨습니다. X는 `i`, Y는 `j`로 움직여 네 샘플이 대각선에 중복되지 않고 2×2 격자에 놓이도록 했습니다. 좌표 변환의 단계별 계산과 5단계의 그림자 식은 그대로 이어서 사용합니다.
+
 ## 구 하나만 그릴 수 있는데 왜 Ray를 사용할까?
 
 1·2단계처럼 고정된 방향으로 구 하나만 그리는 조건에서는 `Ray` 구조체를 따로 만들지 않아도 됩니다. 구의 방정식에서 각 X·Y 위치의 앞면 Z를 직접 계산하거나, 원에 명암을 넣는 방식으로도 구처럼 보이는 그림을 만들 수 있습니다.
@@ -418,13 +456,15 @@ frontZ = Cz - sqrt(k)    (k >= 0인 경우)
 
 1. `Program.cs`: 프로그램 시작과 창 실행
 2. `Raytracer.cs`: 광선과 물체의 교차 계산, 해당 단계의 색 계산과 픽셀 생성
-3. `SphereWindow.cs`, `TriangleWindow.cs` 또는 `ShadowWindow.cs`: 슬라이더·체크박스 입력과 화면 표시
+3. `SphereWindow.cs`, `TriangleWindow.cs`, `ShadowWindow.cs` 또는 `SupersamplingWindow.cs`: 슬라이더·체크박스 입력과 화면 표시
 
 3단계에서는 `Render → TraceRay → FindClosestCollision → IntersectRayCollision` 순서로 호출을 따라가면 원근투영과 교차 판정의 연결을 볼 수 있습니다.
 
 4단계에서는 `Render → TraceRay → FindClosestCollision → Triangle.IntersectRayCollision → IntersectRayTriangle` 순서로 삼각형 계산을 따라갈 수 있습니다.
 
 5단계에서는 `TraceRay` 안에서 `FindClosestCollision`이 화면 광선과 그림자 광선에 대해 각각 호출되는 흐름을 확인할 수 있습니다.
+
+6단계에서는 `Render → TraceRay2x2 → TraceRay` 순서로 따라가며, 한 픽셀의 색이 여러 광선 결과의 평균으로 만들어지는 부분을 확인할 수 있습니다.
 
 구 그리기 강의의 학습 주제를 바탕으로 Codex의 도움을 받아 작성했습니다.
 
